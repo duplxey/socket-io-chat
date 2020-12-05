@@ -3,7 +3,12 @@ import io from "socket.io-client";
 import Message from "./components/Message/Message";
 import User from "./components/User/User";
 import "./App.css";
+
 const App = () => {
+
+  let savedID = "";
+  let tts = true;
+  const [textToSpeech, setTextToSpeech] = useState(true);
   const [currentMessage, setCurrentMessage] = useState("");
   const [yourID, setYourID] = useState();
   const [messages, setMessages] = useState([]);
@@ -11,10 +16,11 @@ const App = () => {
 
   const socketRef = useRef();
 
-    useEffect(() => {
+  useEffect(() => {
     socketRef.current = io.connect('/');
 
     socketRef.current.on("your id", id => {
+      savedID = id;
       setYourID(id);
     });
 
@@ -23,19 +29,32 @@ const App = () => {
       receivedMessage(message);
     });
 
-    socketRef.current.on("connectu", (username) => {
-        onlineUsers.push(username);
-      console.log("connectu: " + username);
+    socketRef.current.on("online-users", (array) => {
+      setOnlineUsers(array);
     });
 
-    socketRef.current.on("fuck", (array) => {
-        setOnlineUsers(array);
+    socketRef.current.on("user-connected", (username) => {
+      setOnlineUsers([...onlineUsers, username])
+      console.log("user-connected: " + username);
+    });
+
+    socketRef.current.on("user-disconnected", (username) => {
+      onlineUsers.push(username);
+      console.log("user-connected: " + username);
     });
   }, []);
 
   function receivedMessage(message) {
-      setMessages(oldMsgs => [...oldMsgs, message]);
-      document.getElementById("1").scrollTop = document.getElementById("1").scrollHeight;
+    setMessages(oldMsgs => [...oldMsgs, message]);
+    document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+
+    // Text to speech
+    if (tts) {
+      if (message.id === savedID) return;
+      const speechSynthesis = new SpeechSynthesisUtterance();
+      speechSynthesis.text = message.body;
+      window.speechSynthesis.speak(speechSynthesis);
+    }
   }
 
   function handleSubmit(event) {
@@ -55,19 +74,25 @@ const App = () => {
 
       setCurrentMessage(event.target.value);
     }
-    function FontIncrease() {
-        var el = document.getElementById("1");
+
+    function handleFontIncrease() {
+        var el = document.getElementById("messages");
         var style = window.getComputedStyle(el, null).getPropertyValue('font-size');
         var fontSize = parseFloat(style);
         el.style.fontSize = (fontSize + 3) + 'px';
-        document.getElementById("1").scrollTop = document.getElementById("1").scrollHeight;
+        document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
     }
-    function FontDecrease() {
-        var el = document.getElementById("1");
+    function handleFontDecrease() {
+        var el = document.getElementById("messages");
         var style = window.getComputedStyle(el, null).getPropertyValue('font-size');
         var fontSize = parseFloat(style);
         el.style.fontSize = (fontSize - 3) + 'px';
-        document.getElementById("1").scrollTop = document.getElementById("1").scrollHeight;
+        document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+    }
+
+    function handleTextToSpeech() {
+      tts = !tts;
+      setTextToSpeech(!textToSpeech);
     }
 
     return (
@@ -75,7 +100,7 @@ const App = () => {
       <div className="container wrapper">
         <div className="row">
           <div className="col-9 p-3" style={{background: "white"}}>
-            <div className="messages" id="1">
+            <div className="messages" id="messages">
              {messages.map((message, index) => {
                   if (message.id === yourID) {
                     return (
@@ -99,15 +124,16 @@ const App = () => {
           <div className="col-3 p-3" style={{background: "#f2f2f2"}}>
             <h4 style={{ color: "black" }}>Online users ({onlineUsers.length}):</h4>
             <div className = "Cards">
-            {onlineUsers.map((username, index) => {
-            return (
-            <User key={index} id={username} />
-                )
-                })}
+              {onlineUsers.map((username, index) => {
+                return (
+                  <User key={index} id={username} />
+                  )
+              })}
             </div>
             <div className="Controls">
-                <button className="btn btn-primary Button" type="submit" onClick={FontIncrease}>T+</button>
-                <button className="btn btn-primary Button" type="submit" onClick={FontDecrease}>T-</button>
+                <button className="btn btn-primary mr-2" onClick={handleFontIncrease}><i className="fas fa-font" /><i className="fas fa-plus fa-xs" /></button>
+                <button className="btn btn-primary" onClick={handleFontDecrease}><i className="fas fa-font" /><i className="fas fa-minus fa-xs" /></button>
+                <button className="btn btn-primary float-right" onClick={handleTextToSpeech}>{textToSpeech ? <i className="fas fa-volume-up"/> : <i className="fas fa-volume-mute"/>}</button>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React from "react"
 import "./Message.css";
+import getImage from "../../util/img";
 
 const Message = (props) => {
     if (props.your) {
@@ -14,7 +15,7 @@ const Message = (props) => {
     return (
         <div className="Message card">
             <div className="card-body">
-                <img src="https://i.ibb.co/LxJzHr0/oof.png"
+              <img src={getImage("cute-fox")}
                     className="MessageImage float-left mr-2"
                     alt={props.message.id + "'s avatar"}
                 />
